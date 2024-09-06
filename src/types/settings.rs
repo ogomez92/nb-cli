@@ -1,6 +1,6 @@
-use serde_json;
-use serde::Serialize;
 use serde::Deserialize;
+use serde::Serialize;
+use serde_json;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -8,8 +8,9 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
-    pub token: String,
     pub url: String,
+    pub token: String,
+    pub last_channel: String,
 }
 
 impl Settings {
@@ -18,6 +19,7 @@ impl Settings {
         Settings {
             token: String::new(),
             url: String::new(),
+            last_channel: String::new(),
         }
     }
 
@@ -48,5 +50,38 @@ impl Settings {
             Ok(_) => Ok(()),
             Err(_) => Err("Error while writing settings.json".to_string()),
         }
+    }
+
+    pub fn initialize() -> Settings {
+        match Settings::load() {
+            Ok(settings) => {
+                println!("Settings loaded: {:?}", settings);
+                settings
+            }
+            Err(_error) => {
+                let new_settings = Settings::new();
+                match new_settings.save() {
+                    Ok(_) => new_settings,
+                    Err(error) => {
+                        panic!("Failed to create settings: {:?}", error);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn set_url(&mut self, url: String) {
+        self.url = url;
+        self.save().expect("Failed to save URL");
+    }
+
+    pub fn set_token(&mut self, token: String) {
+        self.token = token;
+        self.save().expect("Failed to save token");
+    }
+
+    pub fn set_last_channel(&mut self, channel: String) {
+        self.last_channel = channel;
+        self.save().expect("Failed to save last channel");
     }
 }
