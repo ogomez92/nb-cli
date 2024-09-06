@@ -1,12 +1,6 @@
-mod types {
-    pub mod channel;
-    pub mod settings;
-}
-
-mod enums {
-pub mod commands;
-}
-pub mod api;
+mod types;
+mod enums;
+mod api;
 
 use crate::types::settings::Settings;
 use crate::enums::commands;
