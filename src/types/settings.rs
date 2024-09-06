@@ -84,4 +84,26 @@ impl Settings {
         self.last_channel = channel;
         self.save().expect("Failed to save last channel");
     }
+
+        pub fn get_url(&self) -> String {
+        self.url.clone()
+    }
+
+    pub fn get_token(&self) -> String {
+        self.token.clone()
+    }
+
+    pub fn get_last_channel(&self) -> String {
+        self.last_channel.clone()
+    }
+
+    pub fn has_credentials(&self) -> bool {
+        self.url != "" && self.token != ""
+    }
+    pub fn reset(&mut self) {
+        self.url = String::new();
+        self.token = String::new();
+        self.last_channel = String::new();
+        self.save().expect("Failed to reset settings");
+    }
 }
