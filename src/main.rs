@@ -1,11 +1,12 @@
-mod types;
-mod enums;
 mod api;
+mod enums;
+mod types;
 
-use crate::types::settings::Settings;
 use crate::enums::commands;
+use crate::types::channel::Channel;
+use crate::types::settings::Settings;
 use clap::Parser;
-use std::fmt::format;
+use types::channel;
 
 #[derive(Parser)]
 #[command(name = "nb-cli")]
@@ -17,7 +18,6 @@ struct Cli {
     #[command(subcommand)]
     command: commands::Commands,
 }
-
 
 fn main() {
     let mut settings = Settings::initialize();
@@ -38,10 +38,12 @@ fn main() {
             }
             println!("Success!");
         }
+
         commands::Commands::Lsc if !settings.has_credentials() => {
             eprintln!("No credentials are set, please use login <url> <token> before performing any other commands.");
             std::process::exit(1);
         }
+
         commands::Commands::Lsc => {
             let channels = api::get_channel_list(&mut settings);
             match channels {
@@ -57,6 +59,63 @@ fn main() {
                 Err(error) => {
                     eprintln!("Error listing channels. {}", error);
                     std::process::exit(1)
+                }
+            }
+        }
+
+        commands::Commands::Send { message, channel } => {
+            if settings.get_last_channel() == "" && channel.is_none() {
+                eprintln!("No channel is specified. Please specify a channel with the -c or --channel flag.");
+                std::process::exit(1);
+            }
+
+            let channel = channel.unwrap_or(settings.get_last_channel());
+
+            let mut channels = api::get_channel_list(&mut settings);
+            match channels {
+                Ok(ref mut channels) => {
+                    let mut channel_exists = false;
+                    for ch in &mut *channels {
+                        if ch.name == channel {
+                            channel_exists = true;
+                        }
+                    }
+                    if !channel_exists {
+                        println!(
+                            "Channel {} does not exist. Do you want to create it? (y/n)",
+                            channel
+                        );
+                        let mut response = String::new();
+                        std::io::stdin().read_line(&mut response).unwrap();
+                        if response.trim() != "y" {
+                            std::process::exit(0);
+                        } else {
+                            let channel_from_server: Channel =
+                                api::create_channel(&mut settings, &channel)
+                                    .expect("Unable to create channel, exiting.");
+                            channels.push(channel_from_server);
+                            println!("Channel {} created.", channel);
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error listing channels. {}", error);
+                    std::process::exit(1);
+                }
+            }
+
+            settings.set_last_channel(channel.clone());
+            let unwrapped_channels = &channels.unwrap();
+            let found_channel = channel::find_channel_by_name(&&unwrapped_channels, &channel)
+                .expect("Error was found when getting ID of channel");
+            let result = api::send_message(&mut settings, found_channel, &message);
+            match result {
+                Ok(_) => {
+                    println!("Message sent to channel {}!", channel);
+                }
+                Err(error) => {
+                    eprintln!("Error sending message! {}", error);
+                    std::process::exit(1);
                 }
             }
         }
