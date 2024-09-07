@@ -9,3 +9,6 @@ This is still very much a Work in Progress, so expect changes.
 ## Commands
 
 - login [url] [token]: Logs you in and saves the URL and token into settings.json
+- lsc: Get a list of your channels
+- send: takes an optional channel name `-c`or `--channel` or goes to last channel by default and adds it.
+- read(wip): reads a channel and outputs to stdout.

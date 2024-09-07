@@ -1,7 +1,6 @@
 use crate::types::channel::Channel;
 use crate::types::channel::ChannelContainer;
 use crate::types::settings::Settings;
-use log::info;
 use reqwest::blocking;
 use reqwest::StatusCode;
 use serde_json::json;
