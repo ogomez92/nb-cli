@@ -63,7 +63,11 @@ fn main() {
             }
         }
 
-        commands::Commands::Send { message, channel } => {
+        commands::Commands::Send {
+            message,
+            channel,
+            yes,
+        } => {
             if settings.get_last_channel() == "" && channel.is_none() {
                 eprintln!("No channel is specified. Please specify a channel with the -c or --channel flag.");
                 std::process::exit(1);
@@ -80,7 +84,8 @@ fn main() {
                             channel_exists = true;
                         }
                     }
-                    if !channel_exists {
+
+                    if !channel_exists && !yes {
                         println!(
                             "Channel {} does not exist. Do you want to create it? (y/n)",
                             channel
@@ -89,13 +94,15 @@ fn main() {
                         std::io::stdin().read_line(&mut response).unwrap();
                         if response.trim() != "y" {
                             std::process::exit(0);
-                        } else {
-                            let channel_from_server: Channel =
-                                api::create_channel(&mut settings, &channel)
-                                    .expect("Unable to create channel, exiting.");
-                            channels.push(channel_from_server);
-                            println!("Channel {} created.", channel);
                         }
+                    }
+
+                    if !channel_exists {
+                        let channel_from_server: Channel =
+                            api::create_channel(&mut settings, &channel)
+                                .expect("Unable to create channel, exiting.");
+                        channels.push(channel_from_server);
+                        println!("Channel {} created.", channel);
                     }
                 }
                 Err(error) => {

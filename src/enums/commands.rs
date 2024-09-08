@@ -10,6 +10,8 @@ pub enum Commands {
         message: String,
         #[clap(short, long)]
         channel: Option<String>,
+        #[clap(short, long)]
+        yes: bool,
     },
     Read {
         #[clap(short, long)]
