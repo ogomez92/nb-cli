@@ -5,7 +5,6 @@ use serde::Deserialize;
 pub struct Channel {
     pub id: u32,
     pub name: String,
-    pub messages: Option<Vec<String>>,
 }
 
 impl Display for Channel {

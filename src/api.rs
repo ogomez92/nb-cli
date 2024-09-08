@@ -1,5 +1,5 @@
-use crate::types::channel::Channel;
-use crate::types::channel::ChannelContainer;
+use crate::types::channel;
+use crate::types::message;
 use crate::types::settings::Settings;
 use reqwest::blocking;
 use reqwest::StatusCode;
@@ -24,14 +24,13 @@ pub fn check_token(api_url: &str, auth_token: &str) -> Result<String, Box<dyn Er
     }
 }
 
-pub fn get_channel_list(settings: &mut Settings) -> Result<Vec<Channel>, Box<dyn Error>> {
-    env_logger::init();
+pub fn get_channel_list(settings: &mut Settings) -> Result<Vec<channel::Channel>, Box<dyn Error>> {
     let client = blocking::Client::new();
     let resp = client
         .get(&format!("{}/channels/", settings.get_url()))
         .header("authorization", settings.get_token())
         .send();
-    // Handle network error
+
     let resp = match resp {
         Ok(response) => response,
         Err(e) => {
@@ -42,7 +41,7 @@ pub fn get_channel_list(settings: &mut Settings) -> Result<Vec<Channel>, Box<dyn
 
     match resp.status() {
         StatusCode::OK => {
-            let channels: Result<ChannelContainer, _> = resp.json();
+            let channels: Result<channel::ChannelContainer, _> = resp.json();
             match channels {
                 // Return the vector inside the container
                 Ok(container) => Ok(container.channels),
@@ -61,7 +60,10 @@ pub fn get_channel_list(settings: &mut Settings) -> Result<Vec<Channel>, Box<dyn
     }
 }
 
-pub fn create_channel(settings: &mut Settings, name: &String) -> Result<Channel, Box<dyn Error>> {
+pub fn create_channel(
+    settings: &mut Settings,
+    name: &String,
+) -> Result<channel::Channel, Box<dyn Error>> {
     let client = blocking::Client::new();
     let resp = client
         .post(&format!("{}/channels/", settings.get_url()))
@@ -79,7 +81,7 @@ pub fn create_channel(settings: &mut Settings, name: &String) -> Result<Channel,
 
     match resp.status() {
         StatusCode::OK => {
-            let channel: Result<Channel, _> = resp.json();
+            let channel: Result<channel::Channel, _> = resp.json();
             match channel {
                 Ok(channel) => Ok(channel),
                 Err(e) => Err(format!("Failed to parse JSON: {}", e).into()),
@@ -99,7 +101,7 @@ pub fn create_channel(settings: &mut Settings, name: &String) -> Result<Channel,
 
 pub fn send_message(
     settings: &Settings,
-    channel: &Channel,
+    channel: &channel::Channel,
     message: &String,
 ) -> Result<(), Box<dyn Error>> {
     let client = blocking::Client::new();
@@ -122,6 +124,40 @@ pub fn send_message(
 
     match resp.status() {
         StatusCode::OK => Ok(()),
+        StatusCode::NOT_FOUND => Err("Error 404: Resource not found".into()),
+        StatusCode::UNAUTHORIZED => Err("Error 401: Unauthorized".into()),
+        _ => Err(format!("Unexpected status code: {}", resp.status()).into()),
+    }
+}
+
+pub fn read_channel(
+    settings: &Settings,
+    channel: &channel::Channel,
+) -> Result<Vec<message::Message>, Box<dyn Error>> {
+    let client = blocking::Client::new();
+    let resp = client
+        .get(&format!(
+            "{}/channels/{}/messages/",
+            settings.get_url(),
+            channel.id
+        ))
+        .header("authorization", settings.get_token())
+        .send();
+    let resp = match resp {
+        Ok(response) => response,
+        Err(e) => {
+            return Err(format!("Network error: {}", e).into());
+        }
+    };
+
+    match resp.status() {
+        StatusCode::OK => {
+            let messages: Result<message::MessageContainer, _> = resp.json();
+            match messages {
+                Ok(container) => Ok(container.messages),
+                Err(e) => Err(format!("Failed to parse JSON: {}", e).into()),
+            }
+        }
         StatusCode::NOT_FOUND => Err("Error 404: Resource not found".into()),
         StatusCode::UNAUTHORIZED => Err("Error 401: Unauthorized".into()),
         _ => Err(format!("Unexpected status code: {}", resp.status()).into()),

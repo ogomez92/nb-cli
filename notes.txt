@@ -1,5 +1,2 @@
-so, -C channel takes a word (or quoted string) as the channel name.
-and that makes it set in the settings
-if channel does not exist, create it and confirm unless the user passes -y switch
 of course, before actually posting, check that the URL and stuff is in the settings.
 And if there is an error posting, inform the user at all times, then delete settings.

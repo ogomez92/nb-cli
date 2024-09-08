@@ -55,7 +55,6 @@ impl Settings {
     pub fn initialize() -> Settings {
         match Settings::load() {
             Ok(settings) => {
-                println!("Settings loaded: {:?}", settings);
                 settings
             }
             Err(_error) => {

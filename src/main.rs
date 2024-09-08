@@ -119,5 +119,59 @@ fn main() {
                 }
             }
         }
+
+        commands::Commands::Read { channel } => {
+            if settings.get_last_channel() == "" && channel.is_none() {
+                eprintln!("No channel is specified. Please specify a channel with the -c or --channel flag.");
+                std::process::exit(1);
+            }
+
+            let channel = channel.unwrap_or(settings.get_last_channel());
+
+            let mut channels = api::get_channel_list(&mut settings);
+            match channels {
+                Ok(ref mut channels) => {
+                    let mut channel_exists = false;
+                    for ch in &mut *channels {
+                        if ch.name == channel {
+                            channel_exists = true;
+                        }
+                    }
+
+                    if !channel_exists {
+                        println!(
+                            "The channel you are trying to read, {}, does not exist. Exiting.",
+                            channel
+                        );
+                        std::process::exit(1);
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error listing channels. {}", error);
+                    std::process::exit(1);
+                }
+            }
+
+            settings.set_last_channel(channel.clone());
+            let unwrapped_channels = &channels.unwrap();
+            let found_channel = channel::find_channel_by_name(&&unwrapped_channels, &channel)
+                .expect("Error was found when getting ID of channel");
+            let messages = api::read_channel(&mut settings, found_channel);
+            match messages {
+                Ok(messages) => {
+                    if messages.is_empty() {
+                        println!("No messages in channel {}.", channel);
+                    } else {
+                        for message in messages {
+                            println!("{}", message);
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Error reading messages. {}", error);
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 }

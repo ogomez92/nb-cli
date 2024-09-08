@@ -11,4 +11,8 @@ pub enum Commands {
         #[clap(short, long)]
         channel: Option<String>,
     },
+    Read {
+        #[clap(short, long)]
+        channel: Option<String>,
+    },
 }
